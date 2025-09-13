@@ -1,11 +1,11 @@
 // config.js
 const config = {
   // Domain Pterodactyl kamu, JANGAN PAKE "/" di akhir
-  domain: "https://rofiksukangaji.panelwota.my.id",
+  domain: "https://rofiksoleh.cloud-hosting.biz.id",
 
   // Apikey dari Pterodactyl (Application API)
   // Cara buat: Admin Area -> Application API -> Create New
-  apiKey: "ptla_sf1Bj7mRRNY0b51sUBrxR9oRxqvjNJLgEX5JVsnTQaA",
+  apiKey: "ptla_REyLUYSXyLS6BE0Up3YSyd3fTVS2mMQnjsO7cFU0uDZ",
 
   // Default ID untuk Egg, Nest, dan Location
   eggId: "15",    // Ganti dengan ID Egg yang kamu mau (misal: NodeJS)
