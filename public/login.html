@@ -13,7 +13,8 @@
         .input-group { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
         input { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--neon-cyan); background-color: var(--dark-bg); color: var(--text-color); outline: none; box-shadow: 0 0 5px var(--neon-shadow); }
         button { width: 100%; padding: 0.75rem 1.5rem; border: none; background-color: var(--neon-cyan); color: var(--btn-text); border-radius: 0.5rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease; }
-        button:hover { background-color: #00b8d4; }
+        button:disabled { background-color: #555; cursor: not-allowed; }
+        button:hover:not(:disabled) { background-color: #00b8d4; }
         .auth-link { margin-top: 1.5rem; color: var(--light-text); }
         .auth-link a { color: var(--neon-cyan); text-decoration: none; }
         .status-message { margin-top: 1rem; padding: 1rem; border-radius: 8px; text-align: center; display: none; background-color: rgba(244, 67, 54, 0.2); color: #f44336; }
@@ -25,58 +26,65 @@
         <form id="loginForm" class="input-group">
             <input type="text" id="username" placeholder="Masukkan Username" required>
             <input type="password" id="password" placeholder="Masukkan Password" required>
-            <button type="submit">Login</button>
+            <button type="submit" id="submitButton">Login</button>
         </form>
         <div id="errorMessage" class="status-message"></div>
         <div class="auth-link">
             Belum punya akun? <a href="/register.html">Daftar di sini</a>
         </div>
     </main>
-
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
         import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
+        
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
+        const submitButton = document.getElementById('submitButton');
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            submitButton.disabled = false;
+            submitButton.textContent = "Login";
+        }
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            submitButton.disabled = true;
+            submitButton.textContent = "Memproses...";
+            errorMessage.style.display = 'none';
+
             const username = document.getElementById('username').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             
-            if (!username || !password) {
-                errorMessage.textContent = 'Username dan password wajib diisi!';
-                return errorMessage.style.display = 'block';
-            }
+            if (!username || !password) return showError('Username dan password wajib diisi!');
 
             try {
-                // 1. Cari username di Firestore untuk mendapatkan email palsunya
                 const usersRef = collection(db, "users");
                 const q = query(usersRef, where("username", "==", username));
                 const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    throw new Error("Username tidak ditemukan!");
-                }
+                if (querySnapshot.empty) throw new Error("Username atau password salah!");
                 
-                // 2. Ambil email palsu dari data user
                 const userData = querySnapshot.docs[0].data();
                 const fakeEmail = userData.email;
 
-                // 3. Gunakan email palsu untuk login ke Firebase Auth
-                await signInWithEmailAndPassword(auth, fakeEmail, password);
-                
-                // 4. Arahkan ke halaman utama jika berhasil
-                window.location.href = '/index.html';
-            } catch (error) {
-                if (error.code === 'auth/wrong-password' || error.message === "Username tidak ditemukan!") {
-                    errorMessage.textContent = 'Username atau password salah!';
-                } else {
-                    errorMessage.textContent = error.message;
+                // LOGIKA BARU: Cek status ban SEBELUM mencoba login jika user ditemukan
+                if (userData.banned) {
+                    throw new Error("Akun Anda telah di-ban. Silakan hubungi admin.");
                 }
-                errorMessage.style.display = 'block';
+
+                await signInWithEmailAndPassword(auth, fakeEmail, password);
+                window.location.href = '/index.html';
+
+            } catch (error) {
+                // Tampilkan pesan ban jika errornya dari logika kita
+                if (error.message.includes("Akun Anda telah di-ban")) {
+                    showError(error.message);
+                } else {
+                    // Tampilkan pesan umum jika error dari Firebase (salah password) atau user tidak ada
+                    showError('Username atau password salah!');
+                }
             }
         });
     </script>
