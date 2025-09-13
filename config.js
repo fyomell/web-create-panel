@@ -5,7 +5,7 @@ const config = {
 
   // Apikey dari Pterodactyl (Application API)
   // Cara buat: Admin Area -> Application API -> Create New
-  apiKey: "ptla_Js4fy0YPY0e0nNpgjUPmCjiZwbBVFC32Y4QwCqqlIRl",
+  apiKey: "ptla_sf1Bj7mRRNY0b51sUBrxR9oRxqvjNJLgEX5JVsnTQaA",
 
   // Default ID untuk Egg, Nest, dan Location
   eggId: "15",    // Ganti dengan ID Egg yang kamu mau (misal: NodeJS)
