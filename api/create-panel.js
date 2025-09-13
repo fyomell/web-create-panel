@@ -29,13 +29,11 @@ export default async function handler(req, res) {
     const { domain, apiKey, eggId, nestId, locationId } = config;
     const { username, password, serverName, ram } = req.body;
 
-    // Validasi input dasar
     if (!username || !password || !ram) {
         return res.status(400).json({ message: 'Username, password, dan RAM wajib diisi.' });
     }
 
     try {
-        // Tentukan nama server, jika kosong pakai username
         const finalServerName = serverName || username;
 
         // 1. BUAT USER BARU
@@ -57,7 +55,6 @@ export default async function handler(req, res) {
 
         const userData = await userResponse.json();
         if (!userResponse.ok) {
-            // Cek jika error karena user sudah ada
             if (userData.errors && userData.errors[0].code === 'UnprocessableEntityHttpException') {
                 throw new Error(`Username atau email sudah terdaftar.`);
             }
@@ -80,9 +77,11 @@ export default async function handler(req, res) {
                 user: userId,
                 egg: parseInt(eggId),
                 docker_image: "ghcr.io/parkervcp/yolks:nodejs_18", // Ganti jika perlu
-                startup: "npm start", // Ganti jika perlu
+                // ✅ DIUBAH SESUAI PERMINTAAN LU
+                startup: `if [[ -d .git ]] && [[ {{AUTO_UPDATE}} == "1" ]]; then git pull; fi; if [[ ! -z \${NODE_PACKAGES} ]]; then /usr/local/bin/npm install \${NODE_PACKAGES}; fi; if [[ ! -z \${UNNODE_PACKAGES} ]]; then /usr/local/bin/npm uninstall \${UNNODE_PACKAGES}; fi; if [ -f /home/container/package.json ]; then /usr/local/bin/npm install; fi; if [[ ! -z \${CUSTOM_ENVIRONMENT_VARIABLES} ]]; then vars=$(echo \${CUSTOM_ENVIRONMENT_VARIABLES} | tr ";" "\\n"); for line in $vars; do export $line; done fi; /usr/local/bin/\${CMD_RUN};`,
                 environment: {
-                    "SERVER_JARFILE": "server.jar", // Contoh environment, sesuaikan
+                    "CMD_RUN": "npm start", // Ini variabel {{CMD_RUN}} yang akan dieksekusi di akhir script startup
+                    "AUTO_UPDATE": "1", // Contoh variabel lain
                 },
                 limits: {
                     memory: memory,
@@ -109,7 +108,6 @@ export default async function handler(req, res) {
             throw new Error(serverData.errors ? serverData.errors[0].detail : 'Gagal membuat server.');
         }
 
-        // Jika semua berhasil
         res.status(200).json({
             message: 'Panel berhasil dibuat!',
             loginUrl: domain,
