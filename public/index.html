@@ -43,22 +43,114 @@
         button:disabled {
             background-color: #555; cursor: not-allowed;
         }
-        .result-box {
-            background-color: var(--light-card-bg); padding: 1.5rem; border-radius: 10px;
-            border: 1px solid var(--neon-cyan); text-align: left;
-        }
         .result-with-copy {
             display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; background-color: var(--dark-bg); padding: 0.5rem; border-radius: 5px;
         }
         .result-with-copy span {
             flex-grow: 1; word-break: break-all; color: var(--text-color);
+            text-align: left;
         }
         .copy-btn {
             background-color: var(--neon-cyan); color: var(--btn-text); border: none;
             padding: 0.5rem; border-radius: 5px; cursor: pointer;
+            width: auto;
         }
         .status-message {
             margin-top: 1rem; padding: 1rem; border-radius: 8px; text-align: center; display: none;
+        }
+
+        /* CSS UNTUK MODAL */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 15px;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 25px var(--neon-shadow);
+            width: 90%;
+            max-width: 500px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-header {
+            text-align: center;
+            border-bottom: 1px solid var(--neon-cyan);
+            padding-bottom: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            color: var(--neon-cyan);
+            margin: 0;
+        }
+
+        .modal-header p {
+            color: var(--light-text);
+            margin-top: 0.5rem;
+        }
+
+        .modal-body .result-item {
+            margin-bottom: 1rem;
+        }
+
+        .modal-body label {
+            display: block;
+            margin-bottom: 0.25rem;
+            color: var(--light-text);
+            text-align: left;
+        }
+
+        .modal-footer {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .login-btn, .close-btn {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .login-btn {
+            background-color: var(--neon-cyan);
+            color: var(--btn-text);
+            border: none;
+        }
+        .login-btn:hover {
+            background-color: #00b8d4;
+            box-shadow: 0 0 15px var(--neon-shadow);
+        }
+
+        .close-btn {
+            background-color: transparent;
+            color: var(--light-text);
+            border: 1px solid var(--light-text);
+        }
+        .close-btn:hover {
+            background-color: var(--light-text);
+            color: var(--dark-bg);
         }
     </style>
 </head>
@@ -86,35 +178,75 @@
             </select>
             <button id="createPanelBtn" type="submit">Buat Panel</button>
         </form>
-        <div id="panelResultArea" style="display: none;">
-            <div class="result-box">
-                <h3>✅ Panel Berhasil Dibuat!</h3>
-                <p><strong>Login URL:</strong> <a id="panelLoginUrl" href="#" target="_blank"></a></p>
-                <p><strong>Username:</strong></p>
-                <div class="result-with-copy">
-                    <span id="panelUsername"></span>
-                    <button class="copy-btn" onclick="copyResultText('panelUsername')"><i class="fas fa-copy"></i></button>
-                </div>
-                <p style="margin-top: 1rem;"><strong>Password:</strong></p>
-                <div class="result-with-copy">
-                    <span id="panelPassword"></span>
-                    <button class="copy-btn" onclick="copyResultText('panelPassword')"><i class="fas fa-copy"></i></button>
-                </div>
-            </div>
-        </div>
         <div id="panelStatusMessage" class="status-message"></div>
     </main>
+
+    <div id="resultModal" class="modal-backdrop" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✅ Panel Berhasil Dibuat!</h2>
+                <p>Berikut adalah detail akun panel Anda.</p>
+            </div>
+            <div class="modal-body">
+                <div class="result-item">
+                    <label>Username</label>
+                    <div class="result-with-copy">
+                        <span id="panelUsername"></span>
+                        <button class="copy-btn" onclick="copyResultText(this, 'panelUsername')"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <label>Password</label>
+                    <div class="result-with-copy">
+                        <span id="panelPassword"></span>
+                        <button class="copy-btn" onclick="copyResultText(this, 'panelPassword')"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+                <div class="result-item">
+                    <label>Login URL</label>
+                    <div class="result-with-copy">
+                        <span id="panelLoginUrlText"></span>
+                        <button class="copy-btn" onclick="copyResultText(this, 'panelLoginUrlText')"><i class="fas fa-copy"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="panelLoginUrlLink" target="_blank" class="login-btn">Login ke Panel</a>
+                <button id="closeModalBtn" class="close-btn">Tutup</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const createPanelForm = document.getElementById('createPanelForm');
         const createPanelBtn = document.getElementById('createPanelBtn');
-        const panelResultArea = document.getElementById('panelResultArea');
         const panelStatusMessage = document.getElementById('panelStatusMessage');
+
+        // Elemen Modal Baru
+        const resultModal = document.getElementById('resultModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
 
         function showStatusMessage(message, type = 'info') {
             panelStatusMessage.style.display = 'block';
             panelStatusMessage.textContent = message;
             panelStatusMessage.style.backgroundColor = type === 'error' ? 'rgba(244, 67, 54, 0.2)' : 'rgba(0, 255, 242, 0.2)';
             panelStatusMessage.style.color = type === 'error' ? '#f44336' : 'var(--neon-cyan)';
+        }
+
+        function showModal() {
+            resultModal.style.display = 'flex';
+            setTimeout(() => {
+                resultModal.style.opacity = '1';
+                resultModal.querySelector('.modal-content').style.transform = 'scale(1)';
+            }, 10);
+        }
+
+        function hideModal() {
+            resultModal.style.opacity = '0';
+            resultModal.querySelector('.modal-content').style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                resultModal.style.display = 'none';
+            }, 300);
         }
 
         createPanelForm.addEventListener('submit', async (e) => {
@@ -131,7 +263,7 @@
 
             createPanelBtn.disabled = true;
             createPanelBtn.textContent = 'Memproses...';
-            panelResultArea.style.display = 'none';
+            panelStatusMessage.style.display = 'none';
             showStatusMessage('Sedang membuat panel, mohon tunggu...');
 
             try {
@@ -146,13 +278,15 @@
                 if (!response.ok) {
                     throw new Error(data.message || 'Terjadi kesalahan.');
                 }
-
-                document.getElementById('panelLoginUrl').href = data.loginUrl;
-                document.getElementById('panelLoginUrl').textContent = data.loginUrl;
+                
+                // Isi data ke modal
+                document.getElementById('panelLoginUrlText').textContent = data.loginUrl;
+                document.getElementById('panelLoginUrlLink').href = data.loginUrl;
                 document.getElementById('panelUsername').textContent = data.username;
                 document.getElementById('panelPassword').textContent = data.password;
 
-                panelResultArea.style.display = 'block';
+                // Tampilkan modal
+                showModal();
                 panelStatusMessage.style.display = 'none';
                 createPanelForm.reset();
 
@@ -164,14 +298,28 @@
             }
         });
 
-        function copyResultText(elementId) {
+        function copyResultText(button, elementId) {
             const textElement = document.getElementById(elementId);
             if (textElement && textElement.textContent) {
                 navigator.clipboard.writeText(textElement.textContent).then(() => {
-                    alert('Teks berhasil disalin!');
+                    const originalIcon = button.innerHTML;
+                    button.innerHTML = '✅'; // Kasih feedback visual
+                    setTimeout(() => {
+                        button.innerHTML = originalIcon; // Kembalikan ke ikon semula
+                    }, 1500);
                 });
             }
         }
+
+        // Event listener untuk tombol tutup modal
+        closeModalBtn.addEventListener('click', hideModal);
+
+        // Tutup modal jika klik di luar area konten
+        resultModal.addEventListener('click', (e) => {
+            if (e.target === resultModal) {
+                hideModal();
+            }
+        });
     </script>
 </body>
 </html>
