@@ -1,7 +1,7 @@
 // config.js
 const config = {
   // Domain Pterodactyl kamu, JANGAN PAKE "/" di akhir
-  domain: "https://rofiksoleh.cloud-hosting.biz.id",
+  domain: "https://rofiksukangaji.panelwota.my.id",
 
   // Apikey dari Pterodactyl (Application API)
   // Cara buat: Admin Area -> Application API -> Create New
