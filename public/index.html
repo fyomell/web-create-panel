@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        :root {
+            --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --light-card-bg: #131326;
+            --neon-cyan: #00fff2; --neon-shadow: rgba(0, 255, 242, 0.6); --text-color: #e0e0e0;
+            --light-text: #aaa; --btn-text: #0c0c1e;
+        }
+        body, html {
+            margin: 0; padding: 0; font-family: 'Poppins', sans-serif;
+            background: radial-gradient(circle at top left, var(--card-bg), var(--dark-bg));
+            color: var(--text-color); line-height: 1.6; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .panel-creator {
+            max-width: 600px; width: 90%; margin: 2rem auto; background-color: var(--card-bg);
+            padding: 2rem; border-radius: 15px; border: 2px solid var(--neon-cyan);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6); text-align: center;
+        }
+        h1 {
+            color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-shadow); margin-bottom: 1rem;
+        }
+        .input-group {
+            display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;
+        }
+        input, select {
+            width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: 0.5rem; border: 1px solid var(--neon-cyan);
+            background-color: var(--dark-bg); color: var(--text-color); outline: none; box-shadow: 0 0 5px var(--neon-shadow);
+        }
+        button {
+            width: 100%; padding: 0.75rem 1.5rem; border: none; background-color: var(--neon-cyan);
+            color: var(--btn-text); border-radius: 0.5rem; font-weight: bold; cursor: pointer; transition: all 0.3s ease;
+        }
+        button:hover {
+            background-color: #00b8d4; box-shadow: 0 0 15px var(--neon-shadow);
+        }
+        button:disabled {
+            background-color: #555; cursor: not-allowed;
+        }
+        .result-box {
+            background-color: var(--light-card-bg); padding: 1.5rem; border-radius: 10px;
+            border: 1px solid var(--neon-cyan); text-align: left;
+        }
+        .result-with-copy {
+            display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem; background-color: var(--dark-bg); padding: 0.5rem; border-radius: 5px;
+        }
+        .result-with-copy span {
+            flex-grow: 1; word-break: break-all; color: var(--text-color);
+        }
+        .copy-btn {
+            background-color: var(--neon-cyan); color: var(--btn-text); border: none;
+            padding: 0.5rem; border-radius: 5px; cursor: pointer;
+        }
+        .status-message {
+            margin-top: 1rem; padding: 1rem; border-radius: 8px; text-align: center; display: none;
+        }
+    </style>
+</head>
+<body>
+    <main class="panel-creator">
+        <h1>Create Free Panel</h1>
+        <p>Buat akun panel hosting gratis di sini.</p>
+        <form id="createPanelForm" class="input-group">
+            <input type="text" id="panelUsernameInput" placeholder="Masukkan Username Panel Anda" required autocomplete="off">
+            <input type="password" id="panelPasswordInput" placeholder="Masukkan Password Panel Anda" required autocomplete="off">
+            <input type="text" id="serverNameInput" placeholder="Nama Server (Opsional)" autocomplete="off">
+            <select id="panelRamSelect" required>
+                <option value="" disabled selected>Pilih RAM Server</option>
+                <option value="1gb">1 GB RAM</option>
+                <option value="2gb">2 GB RAM</option>
+                <option value="3gb">3 GB RAM</option>
+                <option value="4gb">4 GB RAM</option>
+                <option value="5gb">5 GB RAM</option>
+                <option value="6gb">6 GB RAM</option>
+                <option value="7gb">7 GB RAM</option>
+                <option value="8gb">8 GB RAM</option>
+                <option value="9gb">9 GB RAM</option>
+                <option value="10gb">10 GB RAM</option>
+                <option value="unlimited">Unlimited RAM</option>
+            </select>
+            <button id="createPanelBtn" type="submit">Buat Panel</button>
+        </form>
+        <div id="panelResultArea" style="display: none;">
+            <div class="result-box">
+                <h3>✅ Panel Berhasil Dibuat!</h3>
+                <p><strong>Login URL:</strong> <a id="panelLoginUrl" href="#" target="_blank"></a></p>
+                <p><strong>Username:</strong></p>
+                <div class="result-with-copy">
+                    <span id="panelUsername"></span>
+                    <button class="copy-btn" onclick="copyResultText('panelUsername')"><i class="fas fa-copy"></i></button>
+                </div>
+                <p style="margin-top: 1rem;"><strong>Password:</strong></p>
+                <div class="result-with-copy">
+                    <span id="panelPassword"></span>
+                    <button class="copy-btn" onclick="copyResultText('panelPassword')"><i class="fas fa-copy"></i></button>
+                </div>
+            </div>
+        </div>
+        <div id="panelStatusMessage" class="status-message"></div>
+    </main>
+    <script>
+        const createPanelForm = document.getElementById('createPanelForm');
+        const createPanelBtn = document.getElementById('createPanelBtn');
+        const panelResultArea = document.getElementById('panelResultArea');
+        const panelStatusMessage = document.getElementById('panelStatusMessage');
+
+        function showStatusMessage(message, type = 'info') {
+            panelStatusMessage.style.display = 'block';
+            panelStatusMessage.textContent = message;
+            panelStatusMessage.style.backgroundColor = type === 'error' ? 'rgba(244, 67, 54, 0.2)' : 'rgba(0, 255, 242, 0.2)';
+            panelStatusMessage.style.color = type === 'error' ? '#f44336' : 'var(--neon-cyan)';
+        }
+
+        createPanelForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('panelUsernameInput').value.trim();
+            const password = document.getElementById('panelPasswordInput').value.trim();
+            const serverName = document.getElementById('serverNameInput').value.trim();
+            const ram = document.getElementById('panelRamSelect').value;
+
+            if (!username || !password || !ram) {
+                showStatusMessage('Username, Password, dan RAM wajib diisi.', 'error');
+                return;
+            }
+
+            createPanelBtn.disabled = true;
+            createPanelBtn.textContent = 'Memproses...';
+            panelResultArea.style.display = 'none';
+            showStatusMessage('Sedang membuat panel, mohon tunggu...');
+
+            try {
+                const response = await fetch('/api/create-panel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password, serverName, ram })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Terjadi kesalahan.');
+                }
+
+                document.getElementById('panelLoginUrl').href = data.loginUrl;
+                document.getElementById('panelLoginUrl').textContent = data.loginUrl;
+                document.getElementById('panelUsername').textContent = data.username;
+                document.getElementById('panelPassword').textContent = data.password;
+
+                panelResultArea.style.display = 'block';
+                panelStatusMessage.style.display = 'none';
+                createPanelForm.reset();
+
+            } catch (error) {
+                showStatusMessage(`❌ Gagal: ${error.message}`, 'error');
+            } finally {
+                createPanelBtn.disabled = false;
+                createPanelBtn.textContent = 'Buat Panel';
+            }
+        });
+
+        function copyResultText(elementId) {
+            const textElement = document.getElementById(elementId);
+            if (textElement && textElement.textContent) {
+                navigator.clipboard.writeText(textElement.textContent).then(() => {
+                    alert('Teks berhasil disalin!');
+                });
+            }
+        }
+    </script>
+</body>
+</html>
