@@ -23,7 +23,7 @@
     <main class="auth-container">
         <h1>Buat Akun Baru</h1>
         <form id="registerForm" class="input-group">
-            <input type="email" id="email" placeholder="Masukkan Email Anda" required>
+            <input type="text" id="username" placeholder="Masukkan Username" required>
             <input type="password" id="password" placeholder="Masukkan Password" required>
             <input type="password" id="confirmPassword" placeholder="Konfirmasi Password" required>
             <button type="submit">Daftar</button>
@@ -37,32 +37,47 @@
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { doc, setDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+        import { doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
         const registerForm = document.getElementById('registerForm');
         const errorMessage = document.getElementById('errorMessage');
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
 
             if (password !== confirmPassword) {
                 errorMessage.textContent = 'Password dan konfirmasi password tidak cocok!';
-                errorMessage.style.display = 'block';
-                return;
+                return errorMessage.style.display = 'block';
+            }
+            if (!username || username.includes(" ") || username.length < 4) {
+                errorMessage.textContent = 'Username minimal 4 karakter dan tidak boleh ada spasi.';
+                return errorMessage.style.display = 'block';
             }
 
             try {
-                // Buat user di Firebase Auth
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                // 1. Cek dulu apakah username sudah ada di Firestore
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, where("username", "==", username));
+                const querySnapshot = await getDocs(q);
+                if (!querySnapshot.empty) {
+                    throw new Error("Username sudah digunakan orang lain!");
+                }
+
+                // 2. Buat email palsu untuk didaftarkan ke Firebase Auth
+                const fakeEmail = `${username}@panel.web`; // Ganti @panel.web dengan domain web lu kalo mau
+
+                // 3. Buat user di Firebase Auth pake email palsu
+                const userCredential = await createUserWithEmailAndPassword(auth, fakeEmail, password);
                 const user = userCredential.user;
 
-                // Buat dokumen untuk user di Firestore
+                // 4. Buat dokumen untuk user di Firestore dengan data lengkap
                 await setDoc(doc(db, "users", user.uid), {
-                    email: user.email,
-                    panelCount: 0 // Inisialisasi limit panel
+                    username: username, // Simpan username asli
+                    email: fakeEmail,     // Simpan email palsu
+                    panelCount: 0       // Inisialisasi limit panel
                 });
 
                 alert('Pendaftaran berhasil! Silakan login.');
