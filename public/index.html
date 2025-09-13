@@ -75,10 +75,8 @@
     </div>
     <script type="module">
         import { auth, db } from './firebase-config.js';
-        import { ownerUsernames } from './app-config.js'; 
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        import { doc, getDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-
+        import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
         const createPanelForm = document.getElementById('createPanelForm');
         const createPanelBtn = document.getElementById('createPanelBtn');
         const panelStatusMessage = document.getElementById('panelStatusMessage');
@@ -90,74 +88,50 @@
         const adminBtn = document.getElementById('adminBtn');
         let currentUser = null;
         let currentUserData = null;
-        let unsubscribe = null; // Variabel untuk menyimpan fungsi listener
-
         onAuthStateChanged(auth, (user) => {
-            if (unsubscribe) unsubscribe(); // Hentikan listener lama jika ada
-
             if (user) {
                 currentUser = user;
-                const userDocRef = doc(db, "users", user.uid);
-
-                // LOGIKA BARU: Pasang listener real-time
-                unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        const latestUserData = docSnap.data();
-                        // Cek apakah user baru saja di-ban
-                        if (latestUserData.banned && (!currentUserData || !currentUserData.banned)) {
-                            alert('Akun Anda baru saja di-ban oleh admin. Anda akan logout.');
-                            signOut(auth);
-                        } else {
-                            // Jika tidak di-ban, update UI seperti biasa
-                            loadUserDataAndSetupForm(latestUserData);
-                        }
-                    } else {
-                        // Jika dokumen dihapus, logout user
-                        signOut(auth);
-                    }
-                });
+                loadUserDataAndSetupForm(user.uid);
             } else {
                 window.location.replace('/login.html');
             }
         });
-
-        function loadUserDataAndSetupForm(userData) {
-            currentUserData = userData;
-            const isOwner = ownerUsernames.includes(currentUserData.username);
-
-            const displayRole = isOwner ? 'owner' : currentUserData.role;
-            welcomeMessage.textContent = `Selamat datang, ${currentUserData.username}! (Role: ${displayRole})`;
-
-            if (isOwner) {
-                adminBtn.style.display = 'block';
+        async function loadUserDataAndSetupForm(uid) {
+            const userDocRef = doc(db, "users", uid);
+            const docSnap = await getDoc(userDocRef);
+            if (docSnap.exists()) {
+                currentUserData = docSnap.data();
+                if (currentUserData.banned) {
+                    alert('Akun Anda telah di-ban. Silakan hubungi admin.');
+                    return signOut(auth);
+                }
+                welcomeMessage.textContent = `Selamat datang, ${currentUserData.username}! (Role: ${currentUserData.role})`;
+                if (currentUserData.role === 'owner') {
+                    adminBtn.style.display = 'block';
+                }
+                ramSelect.innerHTML = '<option value="" disabled selected>Pilih RAM Server</option>';
+                let ramOptions = [];
+                if (currentUserData.role === 'owner' || currentUserData.role === 'reseller') {
+                    ramOptions = ["1gb", "2gb", "3gb", "4gb", "5gb", "6gb", "7gb", "8gb", "9gb", "10gb", "unlimited"];
+                } else {
+                    ramOptions = ["1gb", "2gb"];
+                }
+                ramOptions.forEach(ram => {
+                    const option = document.createElement('option');
+                    option.value = ram;
+                    option.textContent = ram === 'unlimited' ? 'Unlimited RAM' : `${ram.replace('gb', '')} GB RAM`;
+                    ramSelect.appendChild(option);
+                });
+                if (currentUserData.role === 'user' && currentUserData.panelCount >= 1) {
+                    showStatusMessage('Anda telah mencapai limit pembuatan panel (1 panel per akun).', 'error');
+                    Array.from(createPanelForm.elements).forEach(el => el.disabled = true);
+                }
             } else {
-                adminBtn.style.display = 'none';
-            }
-
-            ramSelect.innerHTML = '<option value="" disabled selected>Pilih RAM Server</option>';
-            let ramOptions = [];
-            if (isOwner || currentUserData.role === 'reseller') {
-                ramOptions = ["1gb", "2gb", "3gb", "4gb", "5gb", "6gb", "7gb", "8gb", "9gb", "10gb", "unlimited"];
-            } else {
-                ramOptions = ["1gb", "2gb"];
-            }
-
-            ramOptions.forEach(ram => {
-                const option = document.createElement('option');
-                option.value = ram;
-                option.textContent = ram === 'unlimited' ? 'Unlimited RAM' : `${ram.replace('gb', '')} GB RAM`;
-                ramSelect.appendChild(option);
-            });
-
-            if (currentUserData.role === 'user' && currentUserData.panelCount >= 1) {
-                showStatusMessage('Anda telah mencapai limit pembuatan panel (1 panel per akun).', 'error');
-                Array.from(createPanelForm.elements).forEach(el => el.disabled = true);
-            } else {
-                 Array.from(createPanelForm.elements).forEach(el => el.disabled = false);
+                showStatusMessage('Gagal memuat data user.', 'error');
+                signOut(auth);
             }
         }
-        
-        createPanelForm.addEventListener('submit', async (e) => { /* ... kode ini tetap sama ... */
+        createPanelForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('panelUsernameInput').value.trim();
             const password = document.getElementById('panelPasswordInput').value.trim();
@@ -181,6 +155,7 @@
                 if (currentUserData.role === 'user') {
                     const userDocRef = doc(db, "users", currentUser.uid);
                     await updateDoc(userDocRef, { panelCount: (currentUserData.panelCount || 0) + 1 });
+                    loadUserDataAndSetupForm(currentUser.uid); // Reload data
                 }
                 document.getElementById('panelLoginUrlText').textContent = data.loginUrl;
                 document.getElementById('panelLoginUrlLink').href = data.loginUrl;
@@ -195,29 +170,11 @@
                 createPanelBtn.textContent = 'Buat Panel';
             }
         });
-
         logoutBtn.addEventListener('click', () => signOut(auth));
-        
-        function showStatusMessage(message, type = 'info') {
-             panelStatusMessage.style.display = 'block';
-             panelStatusMessage.textContent = message;
-             panelStatusMessage.style.backgroundColor = type === 'error' ? 'rgba(244, 67, 54, 0.2)' : 'rgba(0, 255, 242, 0.2)';
-             panelStatusMessage.style.color = type === 'error' ? '#f44336' : 'var(--neon-cyan)';
-        }
-        
+        function showStatusMessage(message, type = 'info') { /* ... */ }
         function showModal() { resultModal.classList.add('show'); }
         function hideModal() { resultModal.classList.remove('show'); }
-        
-        window.copyResultText = function(button, elementId) {
-             const textElement = document.getElementById(elementId);
-             if (textElement && textElement.textContent) {
-                 navigator.clipboard.writeText(textElement.textContent).then(() => {
-                     const originalIcon = button.innerHTML;
-                     button.innerHTML = '✅';
-                     setTimeout(() => { button.innerHTML = originalIcon; }, 1500);
-                 });
-             }
-        }
+        window.copyResultText = function(button, elementId) { /* ... */ }
         closeModalBtn.addEventListener('click', hideModal);
         resultModal.addEventListener('click', (e) => { if (e.target === resultModal) hideModal(); });
     </script>
