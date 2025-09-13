@@ -23,7 +23,7 @@
     <main class="auth-container">
         <h1>Login ke Akun</h1>
         <form id="loginForm" class="input-group">
-            <input type="email" id="email" placeholder="Masukkan Email Anda" required>
+            <input type="text" id="username" placeholder="Masukkan Username" required>
             <input type="password" id="password" placeholder="Masukkan Password" required>
             <button type="submit">Login</button>
         </form>
@@ -34,23 +34,48 @@
     </main>
 
     <script type="module">
-        import { auth } from './firebase-config.js';
+        import { auth, db } from './firebase-config.js';
         import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+        import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
 
         const loginForm = document.getElementById('loginForm');
         const errorMessage = document.getElementById('errorMessage');
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                errorMessage.textContent = 'Username dan password wajib diisi!';
+                return errorMessage.style.display = 'block';
+            }
 
             try {
-                await signInWithEmailAndPassword(auth, email, password);
-                // Jika berhasil, arahkan ke halaman utama
+                // 1. Cari username di Firestore untuk mendapatkan email palsunya
+                const usersRef = collection(db, "users");
+                const q = query(usersRef, where("username", "==", username));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    throw new Error("Username tidak ditemukan!");
+                }
+                
+                // 2. Ambil email palsu dari data user
+                const userData = querySnapshot.docs[0].data();
+                const fakeEmail = userData.email;
+
+                // 3. Gunakan email palsu untuk login ke Firebase Auth
+                await signInWithEmailAndPassword(auth, fakeEmail, password);
+                
+                // 4. Arahkan ke halaman utama jika berhasil
                 window.location.href = '/index.html';
             } catch (error) {
-                errorMessage.textContent = 'Email atau password salah!';
+                if (error.code === 'auth/wrong-password' || error.message === "Username tidak ditemukan!") {
+                    errorMessage.textContent = 'Username atau password salah!';
+                } else {
+                    errorMessage.textContent = error.message;
+                }
                 errorMessage.style.display = 'block';
             }
         });
