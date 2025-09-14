@@ -1,5 +1,5 @@
 // api/create-panel.js
-import { pterodactylConfig } from '../config.js'; // <-- Sudah sinkron dengan config.js
+import { pterodactylConfig } from '../config.js'; // <-- Perhatikan kurung kurawal {}
 
 function getServerResources(ramSelection) {
     const resources = { ram: 0, disk: 0, cpu: 0 };
