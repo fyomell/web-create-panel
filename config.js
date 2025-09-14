@@ -13,8 +13,8 @@ export const pterodactylConfig = {
   locationId: "1"
 };
 
-// Ini bisa dikosongin kalo gak dipake
 export const telegramConfig = {
-  botToken: "MASUKKAN_TOKEN_BOT_TELEGRAM_KAMU",
-  chatId: "MASUKKAN_CHAT_ID_TELEGRAM_KAMU"
+  // Ini bisa dikosongin kalo gak dipake
+  botToken: "KOSONGKAN_SAJA",
+  chatId: "KOSONGKAN_SAJA"
 };
