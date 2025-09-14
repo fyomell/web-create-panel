@@ -3,7 +3,10 @@ const { db, auth, verifyUser } = require('../_firebase-admin.js');
 const { githubConfig } = require('../../config.js');
 
 async function updateWebResellersInGithub(targetUsername, password, action = 'add') {
-    const { username: owner, repoName, token } = githubConfig;
+    const { username: owner, repoName } = githubConfig;
+    const token = process.env.GITHUB_TOKEN; // <-- BACA DARI VERCEL
+    if (!token) throw new Error("GITHUB_TOKEN tidak di-set.");
+    
     const filePath = 'resellers.json';
     const url = `https://api.github.com/repos/${owner}/${repoName}/contents/${filePath}`;
     
@@ -18,16 +21,17 @@ async function updateWebResellersInGithub(targetUsername, password, action = 'ad
     const userIndex = data.resellers.findIndex(r => r.username === usernameLower);
 
     if (action === 'add') {
-        if (userIndex > -1) { // Jika user sudah ada, update passwordnya
+        if (!password) throw new Error("Password wajib diisi untuk reseller baru.");
+        if (userIndex > -1) {
             data.resellers[userIndex].password = password;
-        } else { // Jika belum ada, tambahkan baru
+        } else {
             data.resellers.push({ username: usernameLower, password: password });
         }
     } else if (action === 'remove') {
         if (userIndex > -1) {
             data.resellers.splice(userIndex, 1);
         } else {
-            return; // Tidak ada perubahan, user tidak ditemukan
+            return;
         }
     }
 
@@ -41,12 +45,8 @@ async function updateWebResellersInGithub(targetUsername, password, action = 'ad
             sha: sha
         })
     });
-
-    if (!updateResponse.ok) {
-        throw new Error("Gagal mengupdate file di GitHub.");
-    }
+    if (!updateResponse.ok) throw new Error("Gagal mengupdate file di GitHub.");
 }
-
 
 module.exports = async (req, res) => {
     if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
@@ -54,22 +54,20 @@ module.exports = async (req, res) => {
         await verifyUser(req, 'owner');
         const { username, role, banned, password } = req.body;
         if (!username) return res.status(400).json({ message: 'Username is required.' });
-        
         if (role === 'web_reseller') {
-            if (!password) return res.status(400).json({ message: 'Password untuk reseller web wajib diisi.' });
             await updateWebResellersInGithub(username, password, 'add');
-            return res.status(200).json({ message: `User ${username} berhasil ditambahkan sebagai Reseller Web di GitHub.` });
+            // Sekalian update role di Firestore juga biar konsisten
+            const userDoc = (await db.collection('users').where('username', '==', username.toLowerCase()).get()).docs[0];
+            if (userDoc) await userDoc.ref.update({ role: 'web_reseller' });
+            return res.status(200).json({ message: `User ${username} berhasil ditambahkan sebagai Reseller Web.` });
         }
-        
         if (role === 'user' || role === 'reseller') {
             await updateWebResellersInGithub(username, null, 'remove');
         }
-        
         const usersRef = db.collection('users');
         const q = usersRef.where('username', '==', username.toLowerCase());
         const querySnapshot = await q.get();
         if (querySnapshot.empty) return res.status(404).json({ message: `User '${username}' not found.` });
-        
         const userDoc = querySnapshot.docs[0];
         const updateData = {};
         if (role !== undefined) updateData.role = role;
@@ -77,9 +75,7 @@ module.exports = async (req, res) => {
              updateData.banned = banned;
              await auth.updateUser(userDoc.id, { disabled: banned });
         }
-        
         if (Object.keys(updateData).length > 0) await userDoc.ref.update(updateData);
-        
         res.status(200).json({ message: `Status user ${username} berhasil diupdate.` });
     } catch (error) {
         res.status(500).json({ message: error.message });
