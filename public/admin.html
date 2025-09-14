@@ -1,49 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --dark-bg: #0c0c1e; --card-bg: #1a1a2e; --neon-cyan: #00fff2; --text-color: #e0e0e0; --light-text: #aaa; --btn-text: #0c0c1e; --danger-color: #f44336; --warning-color: #ffc107; }
-        body { margin: 0; padding: 2rem; font-family: 'Poppins', sans-serif; background: var(--dark-bg); color: var(--text-color); }
-        .container { max-width: 1000px; margin: auto; }
-        h1, h2 { color: var(--neon-cyan); text-align: center; }
-        .home-link { display: block; text-align: center; margin-bottom: 2rem; color: var(--neon-cyan); }
-        table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; table-layout: fixed; }
-        th, td { padding: 0.75rem; border: 1px solid var(--card-bg); text-align: left; word-wrap: break-word; }
-        th { background-color: var(--card-bg); }
-        tbody tr:nth-child(odd) { background-color: #131326; }
-        .actions button { padding: 0.3rem 0.6rem; font-size: 12px; margin-right: 5px; border-radius: 4px; border: none; cursor: pointer; margin-top: 5px; }
-        .btn-make-reseller-web { background-color: #17a2b8; color: white; }
-        .btn-make-user { background-color: var(--light-text); color: var(--btn-text); }
-        .btn-ban { background-color: var(--danger-color); color: white; }
-        .btn-unban { background-color: #4caf50; color: white; }
-    </style>
-</head>
+    </head>
 <body>
-    <div class="container">
-        <h1>Admin Dashboard</h1>
-        <a href="/index.html" class="home-link">Kembali ke Home</a>
-        <div class="user-management">
-            <h2>User Management</h2>
-            <table id="usersTable">
-                <thead>
-                    <tr>
-                        <th>Username</th>
-                        <th>Role</th>
-                        <th>Panel Dibuat</th>
-                        <th>Status</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td colspan="5" style="text-align:center;">Memuat data...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
     <script type="module">
         import { auth, db } from './firebase-config.js';
         import { onAuthStateChanged, getIdToken } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
@@ -91,7 +50,6 @@
                         <td class="actions">
                             ${user.role !== 'web_reseller' ? `<button class="btn-make-reseller-web" onclick="window.setUserRole('${user.username}', 'web_reseller')">Jadi Reseller Web</button>` : ''}
                             ${user.role === 'web_reseller' ? `<button class="btn-make-user" onclick="window.setUserRole('${user.username}', 'user')">Jadi User Biasa</button>` : ''}
-                            
                             ${!isBanned ? `<button class="btn-ban" onclick="window.setBanStatus('${user.username}', true)">Ban</button>` : ''}
                             ${isBanned ? `<button class="btn-unban" onclick="window.setBanStatus('${user.username}', false)">Unban</button>` : ''}
                         </td>
@@ -103,13 +61,23 @@
             }
         }
 
-        async function updateUserState(username, state) {
-            if (!confirm(`Apakah Anda yakin ingin mengubah status user ${username}?`)) return;
+        async function updateUserState(username, state, password = null) {
+            let confirmationMessage = `Apakah Anda yakin ingin mengubah status user ${username}?`;
+            if (state.role === 'web_reseller') {
+                confirmationMessage = `Anda akan menjadikan ${username} sebagai Reseller Web. Lanjutkan?`;
+            }
+            if (!confirm(confirmationMessage)) return;
+
             try {
+                const bodyPayload = { username, ...state };
+                if (password) {
+                    bodyPayload.password = password;
+                }
+
                 const response = await fetch('/api/admin/setUserState', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-                    body: JSON.stringify({ username, ...state })
+                    body: JSON.stringify(bodyPayload)
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.message);
@@ -120,7 +88,19 @@
             }
         }
         
-        window.setUserRole = (username, role) => updateUserState(username, { role });
+        window.setUserRole = (username, role) => {
+            if (role === 'web_reseller') {
+                const password = prompt(`Masukkan password untuk Reseller Web "${username}":`);
+                if (password && password.length >= 6) {
+                    updateUserState(username, { role }, password);
+                } else if (password !== null) { // Jika user tidak klik cancel tapi passwordnya kurang
+                    alert("Password minimal 6 karakter.");
+                }
+            } else {
+                updateUserState(username, { role });
+            }
+        };
+
         window.setBanStatus = (username, banned) => updateUserState(username, { banned });
     </script>
 </body>
