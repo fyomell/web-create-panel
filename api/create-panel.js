@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
-    const { domain, apiKey, eggId, locationId } = config;
+    const { domain, apiKey, eggId, nestId, locationId } = config;
     const { username, password, serverName, ram } = req.body;
 
     if (!username || !password || !ram) {
@@ -53,10 +53,16 @@ module.exports = async (req, res) => {
                 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Accept': 'application/json',
             },
             body: JSON.stringify({
-                name: finalServerName, user: userId, egg: parseInt(eggId),
+                name: finalServerName,
+                user: userId,
+                nest: parseInt(nestId), // Nest ID penting
+                egg: parseInt(eggId),
                 docker_image: "ghcr.io/parkervcp/yolks:nodejs_18",
-                startup: "if [[ -d .git ]] && [[ {{AUTO_UPDATE}} == \"1\" ]]; then git pull; fi; /usr/local/bin/npm install; /usr/local/bin/npm start",
-                environment: {},
+                startup: "if [[ -d .git ]] && [[ {{AUTO_UPDATE}} == \"1\" ]]; then git pull; fi; if [[ ! -z ${NODE_PACKAGES} ]]; then /usr/local/bin/npm install ${NODE_PACKAGES}; fi; if [[ ! -z ${UNNODE_PACKAGES} ]]; then /usr/local/bin/npm uninstall ${UNNODE_PACKAGES}; fi; if [ -f /home/container/package.json ]; then /usr/local/bin/npm install; fi; if [[ ! -z ${CUSTOM_ENVIRONMENT_VARIABLES} ]]; then vars=$(echo ${CUSTOM_ENVIRONMENT_VARIABLES} | tr \";\" \"\\n\"); for line in $vars; do export $line; done fi; /usr/local/bin/${CMD_RUN};",
+                // INI BAGIAN YANG DIBENERIN
+                environment: {
+                    "CMD_RUN": "npm start"
+                },
                 limits: { memory, swap: 0, disk, io: 500, cpu },
                 feature_limits: { databases: 1, allocations: 1, backups: 1 },
                 deploy: { locations: [parseInt(locationId)], dedicated_ip: false, port_range: [] },
@@ -74,4 +80,4 @@ module.exports = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-}; 
+};
