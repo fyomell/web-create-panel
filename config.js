@@ -4,7 +4,7 @@ module.exports = {
   domain: "https://rofiksoleh.cloud-hosting.biz.id",
 
   // Apikey dari Pterodactyl
-  apiKey: "ptla_REyLUYSXyLS6BE0Up3YSyd3fTV52mMQnjs07cFU0uDZ",
+  apiKey: "ptla_WIO5duQxqL7EfeVAIxaSBQ0vnLXBereXMuLbn5ItvH2",
 
   // Default ID untuk Egg, Nest, dan Location
   eggId: "15",
