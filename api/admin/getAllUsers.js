@@ -8,7 +8,6 @@ export default async function handler(req, res) {
         const usersSnapshot = await db.collection('users').get();
         const users = usersSnapshot.docs.map(doc => {
             const data = doc.data();
-            // Kita tidak perlu mengirim email palsu ke frontend
             delete data.email; 
             return { id: doc.id, ...data };
         });
