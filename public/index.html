@@ -125,8 +125,14 @@
 
             ramSelect.innerHTML = '<option value="" disabled selected>Pilih RAM Server</option>';
             let ramOptions = [];
+            
+            // INI BAGIAN YANG DIBENERIN
             if (currentUserData.role === 'owner' || currentUserData.role === 'reseller') {
-                ramOptions = ["1gb", "2gb", "3gb", "4gb", "5gb", "6gb", "7gb", "8gb", "9gb", "10gb", "unlimited"];
+                // Buat array dari 1 sampai 10, lalu tambahkan "unlimited"
+                for (let i = 1; i <= 10; i++) {
+                    ramOptions.push(`${i}gb`);
+                }
+                ramOptions.push("unlimited");
             } else { // Role 'user'
                 ramOptions = ["1gb", "2gb"];
             }
@@ -158,18 +164,18 @@
             createPanelBtn.disabled = true; createPanelBtn.textContent = 'Memproses...';
             showStatusMessage('Sedang membuat panel, mohon tunggu...');
             try {
-                const idToken = await getIdToken(currentUser); // Dapatkan token sesi user
+                const idToken = await getIdToken(currentUser);
                 const response = await fetch('/api/create-panel', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${idToken}` // Kirim token ke backend
+                        'Authorization': `Bearer ${idToken}`
                     },
                     body: JSON.stringify({ username, password, serverName, ram })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.message || 'Terjadi kesalahan.');
-                // Update panelCount dikontrol oleh listener onSnapshot
+                
                 document.getElementById('panelLoginUrlText').textContent = data.loginUrl;
                 document.getElementById('panelLoginUrlLink').href = data.loginUrl;
                 document.getElementById('panelUsername').textContent = data.username;
