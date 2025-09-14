@@ -1,13 +1,15 @@
 // config.js
 module.exports = {
-  // Domain Pterodactyl kamu
-  domain: "https://rofiksoleh.cloud-hosting.biz.id",
-
-  // Apikey dari Pterodactyl
-  apiKey: "ptla_WIO5duQxqL7EfeVAIxaSBQ0vnLXBereXMuLbn5ItvH2",
-
-  // Default ID untuk Egg, Nest, dan Location
-  eggId: "15",
-  nestId: "5", // <-- INI DIA, UDAH BALIK LAGI
-  locationId: "1"
+  pterodactylConfig: {
+    domain: "https://rofiksoleh.cloud-hosting.biz.id",
+    apiKey: "ptla_REyLUYSXyLS6BE0Up3YSyd3fTV52mMQnjs07cFU0uDZ",
+    eggId: "15",
+    nestId: "5",
+    locationId: "1"
+  },
+  githubConfig: {
+    username: "NAMA_USER_GITHUB_KAMU",
+    repoName: "reseller-data", // Nama repo private-mu
+    token: "PASTE_TOKEN_GITHUB_KAMU_DI_SINI"
+  }
 };
