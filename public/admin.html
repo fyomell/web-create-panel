@@ -51,6 +51,7 @@
         
         let idToken = null;
         let currentUser = null;
+
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
@@ -66,17 +67,20 @@
                 window.location.replace('/login.html');
             }
         });
+
         async function loadAllUsers() {
             const tableBody = document.getElementById('usersTable').querySelector('tbody');
             try {
-                const response = await fetch('/api/admin/getAllUsers', {
-                    headers: { 'Authorization': `Bearer ${idToken}` }
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+                    body: JSON.stringify({
+                        action: 'get_all_users'
+                    })
                 });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Gagal memuat data user.');
-                }
                 const users = await response.json();
+                if (!response.ok) throw new Error(users.message || 'Gagal memuat data user.');
+                
                 tableBody.innerHTML = '';
                 users.forEach(user => {
                     if (user.role === 'owner') return;
@@ -100,13 +104,18 @@
                 tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--danger-color);">${error.message}</td></tr>`;
             }
         }
+
         async function updateUserState(username, state) {
             if (!confirm(`Apakah Anda yakin ingin mengubah status user ${username}?`)) return;
             try {
-                const response = await fetch('/api/admin/setUserState', {
+                const response = await fetch('/api', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-                    body: JSON.stringify({ username, ...state })
+                    body: JSON.stringify({
+                        action: 'set_user_state',
+                        username: username,
+                        ...state
+                    })
                 });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.message);
@@ -116,6 +125,7 @@
                 alert(`Error: ${error.message}`);
             }
         }
+        
         window.setUserRole = (username, role) => updateUserState(username, { role });
         window.setBanStatus = (username, banned) => updateUserState(username, { banned });
     </script>
