@@ -1,5 +1,5 @@
 // api/create-panel.js
-import { pterodactylConfig } from '../config.js'; // <-- Menggunakan named import
+const { pterodactylConfig } = require('../config.js');
 
 function getServerResources(ramSelection) {
     const resources = { ram: 0, disk: 0, cpu: 0 };
@@ -20,7 +20,7 @@ function getServerResources(ramSelection) {
     return resources;
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
@@ -46,10 +46,12 @@ export default async function handler(req, res) {
             if (userData.errors && userData.errors[0].code === 'UnprocessableEntityHttpException') {
                 throw new Error(`Username atau email panel Pterodactyl sudah terdaftar.`);
             }
-            throw new Error(userData.errors ? userData.errors[0].detail : 'Gagal membuat user di Pterodactyl.');
+            throw new Error(userData.errors ? userData.errors[0].detail : 'Gagal membuat user Ptero.');
         }
+        
         const userId = userData.attributes.id;
         const { ram: memory, disk, cpu } = getServerResources(ram);
+
         const serverResponse = await fetch(`${domain}/api/application/servers`, {
             method: 'POST',
             headers: {
@@ -67,15 +69,17 @@ export default async function handler(req, res) {
         });
         const serverData = await serverResponse.json();
         if (!serverResponse.ok) {
+            // Jika server gagal dibuat, hapus user yang sudah terlanjur dibuat
             await fetch(`${domain}/api/application/users/${userId}`, {
                 method: 'DELETE', headers: { 'Authorization': `Bearer ${apiKey}` }
             });
-            throw new Error(serverData.errors ? serverData.errors[0].detail : 'Gagal membuat server di Pterodactyl.');
+            throw new Error(serverData.errors ? serverData.errors[0].detail : 'Gagal membuat server Ptero.');
         }
+        
         res.status(200).json({
             message: 'Panel berhasil dibuat!', loginUrl: domain, username: username, password: password,
         });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-}
+};
