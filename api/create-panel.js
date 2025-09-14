@@ -1,5 +1,5 @@
 // api/create-panel.js
-import { pterodactylConfig } from '../config.js';
+import { pterodactylConfig } from '../config.js'; // <-- Sudah sinkron dengan config.js
 
 function getServerResources(ramSelection) {
     const resources = { ram: 0, disk: 0, cpu: 0 };
@@ -58,10 +58,9 @@ export default async function handler(req, res) {
             body: JSON.stringify({
                 name: finalServerName, user: userId, egg: parseInt(eggId),
                 docker_image: "ghcr.io/parkervcp/yolks:nodejs_18",
-                // INI BAGIAN YANG DIUBAH SESUAI PERMINTAANMU
                 startup: "if [[ -d .git ]] && [[ {{AUTO_UPDATE}} == \"1\" ]]; then git pull; fi; if [[ ! -z ${NODE_PACKAGES} ]]; then /usr/local/bin/npm install ${NODE_PACKAGES}; fi; if [[ ! -z ${UNNODE_PACKAGES} ]]; then /usr/local/bin/npm uninstall ${UNNODE_PACKAGES}; fi; if [ -f /home/container/package.json ]; then /usr/local/bin/npm install; fi; if [[ ! -z ${CUSTOM_ENVIRONMENT_VARIABLES} ]]; then vars=$(echo ${CUSTOM_ENVIRONMENT_VARIABLES} | tr \";\" \"\\n\"); for line in $vars; do export $line; done fi; /usr/local/bin/${CMD_RUN};",
                 environment: {
-                    "CMD_RUN": "npm start" // Ini variabel yang akan dipanggil di akhir script startup
+                    "CMD_RUN": "npm start"
                 },
                 limits: { memory: memory, swap: 0, disk: disk, io: 500, cpu: cpu, },
                 feature_limits: { databases: 5, allocations: 1, backups: 5, },
