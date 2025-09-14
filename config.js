@@ -10,6 +10,5 @@ module.exports = {
   githubConfig: {
     username: "NAMA_USER_GITHUB_KAMU",
     repoName: "reseller-data", // Nama repo private-mu
-    token: "PASTE_TOKEN_GITHUB_KAMU_DI_SINI"
   }
 };
