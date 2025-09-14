@@ -16,8 +16,14 @@ const db = admin.firestore();
 const auth = admin.auth();
 
 async function isWebReseller(username) {
-    const { username: owner, repoName, token } = githubConfig;
+    const { username: owner, repoName } = githubConfig;
+    const token = process.env.GITHUB_TOKEN; // <-- BACA DARI VERCEL
+    if (!token) {
+        console.error("GITHUB_TOKEN tidak ditemukan di Vercel Environment Variables.");
+        return false;
+    }
     const url = `https://api.github.com/repos/${owner}/${repoName}/contents/resellers.json`;
+    
     try {
         const response = await fetch(url, {
             headers: { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github.v3.raw' }
@@ -27,7 +33,6 @@ async function isWebReseller(username) {
             return false;
         }
         const data = await response.json();
-        // Cari user berdasarkan username di dalam array of objects
         return data.resellers.some(reseller => reseller.username === username.toLowerCase());
     } catch (error) {
         console.error("Error saat cek ke GitHub:", error);
@@ -38,34 +43,24 @@ async function isWebReseller(username) {
 async function verifyUser(req, requiredRole = 'user') {
     const { authorization } = req.headers;
     if (!authorization || !authorization.startsWith('Bearer ')) throw new Error('Unauthorized');
-    
     const idToken = authorization.split('Bearer ')[1];
     const decodedToken = await auth.verifyIdToken(idToken);
     const uid = decodedToken.uid;
-    
     const userDoc = await db.collection('users').doc(uid).get();
     if (!userDoc.exists) throw new Error('User not found in Firestore.');
-    
     const userData = userDoc.data();
     if (userData.banned && userData.role !== 'owner') throw new Error('User is banned.');
-    
     let userRole = userData.role || 'user';
-    
-    if (userRole === 'web_reseller' || requiredRole === 'web_reseller') {
+    if (userRole === 'user') { // Hanya cek ke GitHub jika rolenya 'user', untuk efisiensi
         const isResellerInGithub = await isWebReseller(userData.username);
-        if (!isResellerInGithub && userRole === 'web_reseller') {
-             userRole = 'user';
-        }
         if (isResellerInGithub) {
             userRole = 'web_reseller';
         }
     }
-    
     const roles = ['user', 'reseller', 'web_reseller', 'owner'];
     if (roles.indexOf(userRole) < roles.indexOf(requiredRole)) {
         throw new Error(`Insufficient permissions. Your role: ${userRole}`);
     }
-    
     return { uid, userDoc, userData };
 }
 
