@@ -1,20 +1,16 @@
 // config.js
-
-export const pterodactylConfig = {
-  // Ganti dengan domain Pterodactyl kamu, JANGAN PAKE "/" di akhir
+const config = {
+  // Domain Pterodactyl kamu, JANGAN PAKE "/" di akhir
   domain: "https://rofiksoleh.cloud-hosting.biz.id",
 
-  // Ganti dengan Application Key Pterodactyl
+  // Apikey dari Pterodactyl (Application API)
+  // Cara buat: Admin Area -> Application API -> Create New
   apiKey: "ptla_REyLUYSXyLS6BE0Up3YSyd3fTV52mMQnjs07cFU0uDZ",
 
   // Default ID untuk Egg, Nest, dan Location
-  eggId: "15",
-  nestId: "5",
-  locationId: "1"
+  eggId: "15",    // Ganti dengan ID Egg yang kamu mau (misal: NodeJS)
+  nestId: "5",     // Ganti dengan ID Nest dari Egg di atas
+  locationId: "1" // Ganti dengan ID Location server
 };
 
-export const telegramConfig = {
-  // Ini bisa dikosongin kalo gak dipake
-  botToken: "KOSONGKAN_SAJA",
-  chatId: "KOSONGKAN_SAJA"
-};
+export default config;
